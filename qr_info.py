@@ -1,6 +1,3 @@
-import pandas as pd
-
-# Read info from the excel db file it contains:
 # 1. Version (for standard QR Code from 1 to 40)
 # 2. N° of modules
 # 3. N° if Alignment Patterns
@@ -13,6 +10,22 @@ import pandas as pd
 # 9. p value: number of misdecoded protection codewords
 # 10. number of error correction blocks: This approach is used to make the most of EC algorithms and, by employing interleaving, to ensure greater resistance to physical effects on the QR code.
 # 11. Error correction per block: (c,k,r), c = total number of codewords, k = number of data codewords, r = error correction capacity (bytes)
-db_qr_info = pd.read_excel("QR_CODE_DB.xlsx", sheet_name = "QR_Info")
-# This info containg the character for the Alphanumeric encoding according to ISO/IEC 18004:2015 (pg. 28, chapter 7.3.4 and pg. 34 Table 5)
-db_alphacoding = pd.read_excel("QR_CODE_DB.xlsx", sheet_name = "Alphanumeric_Mode",  dtype=str)
+
+dict_qr_info = {}
+
+with open("QR_CODE_DB.txt", "r") as file:
+	lines = file.readlines()
+file.close()
+
+for i, line in enumerate(lines):
+	l = line.split()
+	if i == 0:
+		dict_qr_info["cols"] = []
+		for ele in l[1:]:
+			dict_qr_info["cols"].append(ele)
+	else:
+		dict_qr_info[l[0]] = [] 
+		for ele in l[1:]:
+			dict_qr_info[l[0]].append(ele)
+
+print(dict_qr_info["-1"])

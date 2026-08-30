@@ -161,13 +161,14 @@ def ec_remainder(bits_string: str, gx: list, ec_cws: int) -> str:
     
     return bits_string_ec
 
-def qr_encoding_blocks(bits_string: str, n_blocks: list, ec_blocks: str, qr_capacity: int) -> str:
+def qr_encoding_blocks(bits_string: str, n_blocks: list, ec_blocks: str, qr_codewords_capacity: int) -> str:
 
     """Depending on the Version and EC the codeword shall be subdivided into one or more blocks, to each of which the error correction algotithm shall be applied separately.
         The function takes four inputs:
-            1. bits_string: the code words cmposed of mode indicator + character count + input data bits sequence + padding
+            1. bits_string: the code words composed of mode indicator + character count + input data bits sequence + padding
             2. n_blocks: the required numer of blocks for the versiona and EC selected
             3. ec_blocks: information about the total codewords, data codewords and error correction capacity for each block
+            4. qr_codewords_capacity: number of total codeword given by the QR code choosen
         It returns the final bytes string sorted accrodingly to the ISO block structures requirements
         (pg. 44 chapter 7.5.1/7.6 of ISO/IEC 18004:2015)"""
 
@@ -179,7 +180,6 @@ def qr_encoding_blocks(bits_string: str, n_blocks: list, ec_blocks: str, qr_capa
     blocks = {"data": [],
               "ec": []}
 
-    # 
     for i, b in enumerate(n_blocks):
         ec_block = ec_blocks[i].split(",")
         for row in range(b):
@@ -205,13 +205,12 @@ def qr_encoding_blocks(bits_string: str, n_blocks: list, ec_blocks: str, qr_capa
             for j in range(len(blocks[d])):
                 try:
                     bits_string += blocks[d][j][i]
-                    print(blocks[d][j][i])
                 except IndexError:
                     continue
 
     # Add the Remanider bits if necessary
-    if len(bits_string) < qr_capacity*8:
-        bits_string += 0*(qr_capacity*8 - len(bits_string))  
-        print(f"Remainder bits: {qr_capacity*8 - len(bits_string)}")          
+    if len(bits_string) < qr_codewords_capacity*8:
+        bits_string += 0*(qr_codewords_capacity*8 - len(bits_string))  
+        print(f"Remainder bits: {qr_codewords_capacity*8 - len(bits_string)}")          
     
     return bits_string

@@ -1,12 +1,21 @@
+debug = False
+
+# LIST OF CHAR FOR THE ALPHANUMERIC MODE
+# This info contain the character for the Alphanumeric encoding according to ISO/IEC 18004:2015 (pg. 28, chapter 7.3.4 and pg. 34 Table 5)
+
+alphanumeric_list = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T''U','V','W','X','Y','Z',' ','$','%','*','+','-','.','/',':']
+
 # FUNCTIONS TO DEFINE THE MODE OF THE INPURT STRING
 
-def check_alphanumeric(data: str, db_alphacoding) -> bool:
+def check_alphanumeric(data: str, alphanumeric_list: list) -> bool:
 
     """Given a string check if all charaters correspond to the one listed in db_alphacoding"""
 
     cond = True
     for j in data:
-        if len(db_alphacoding[db_alphacoding["Char."]==j]) == 0:
+        if j in alphanumeric_list:
+            continue
+        else:
             cond = False
             
     return cond
@@ -37,13 +46,13 @@ def check_kanji(data: str) -> bool:
         
     return cond 
 
-def find_mode(data: str, db_alphacoding) -> str:
+def find_mode(data: str, alphanumeric_list: list = alphanumeric_list) -> str:
 
     """Given a string input finds the correct mode to encode it in a QR code accoridnly to ISO/IEC 18004:2015"""
 
     if data.isdigit():
         mode = "Numeric"
-    elif check_alphanumeric(data, db_alphacoding):
+    elif check_alphanumeric(data, alphanumeric_list):
         mode = "Alphanumeric"
     elif check_byte(data):
         mode = "Byte"
@@ -271,14 +280,17 @@ def padding(version: int, bits_string: str, data_bits_capacity: int) -> str:
             bits_string += '0'*x
             for i in range(q):
                 bits_string += pad[i%2]
-            print("Four Terminator added")
-            print(f"Padding of zeros added: {x}")
-            print(f"Padding codewords added: {q}")
+            if debug:
+                print("Four Terminator added")
+                print(f"Padding of zeros added: {x}")
+                print(f"Padding codewords added: {q}")
         elif data_bits_capacity - len(bits_string) < 4:
             bits_string += '0'*(data_bits_capacity - len(bits_string))
-            print("Partial Terminator added")
+            if debug:
+                print("Partial Terminator added")
         elif data_bits_capacity == len(bits_string):
-            print("No padding required")
+            if debug:
+                print("No padding required")
     
     return bits_string
 
@@ -323,9 +335,10 @@ def XOR(string1: str, string2: str) -> str:
         new_str += str(int(string1[i]) ^ int(string2[i]))
     return new_str
 
-def format_information_string(string: str) -> str:
+def format_information_string(EC_level: str, mask_mode: str) -> str:
 
-    """The format information consists of a 15-bit sequence comprising 5 data bits and 10 BCH (Bose-Chaudhuri-Hocquenghem) (15,5) error corretion (EC) bits. 
+    """The format information consists of a 15-bit sequence comprising 5 data bits and 10 BCH (Bose-Chaudhuri-Hocquenghem) (15,5) error corretion (EC) bits.
+       The 5 data bits consist of 2 bits for the EC level and 3 for the masking.
         In BCH:
        
             - n = 2**m - 1: total message length, given by the original messages + Error Correcion bits (in our case 15)
@@ -341,7 +354,7 @@ def format_information_string(string: str) -> str:
             1. message: 00101 --> convert to a polynomial based on the coefficent: m(x) = x**2 + 1
             2. generator polynomial: g(x) = x**10 + x**8 + x**5 + x**4 + x**2 + x + 1
             3. m(x)*x**10 = x**12 + x**10
-            4. perfome the division end find the reminder of the operation: m(x)*x**10/g(x). To get the remainder we need to remove the highest order x**12. So:
+            4. perfome the division and find the reminder of the operation: m(x)*x**10/g(x). To get the remainder we need to remove the highest order x**12. So:
                x**2*g(x) = x**12 + x**10 + x**7 + x**6 + x**4 + x**3 + *x**2 
                (x**12 + x**10) - (x**12 + x**10 + x**7 + x**6 + x**4 + x**3 + *x**2) = x**7 + x**6 + x**4 + x**3 + x**2
                For this example this first operation is enough, but if the remainder would have been >= x**10 the highest order of the generator polinomial then GOTO 3
@@ -349,7 +362,7 @@ def format_information_string(string: str) -> str:
             6. XOR the final message for the mask bit sequence 101010000010010
         (pg. 87 Annex C, C.2 of ISO/IEC 18004:2015).
             """
-
+    string = EC_level + mask_mode
     original = string
     string = string + (15 - len(string))*'0'    # This correspond to 3. (example. 00101 0000000000 --> x**12 + x**10)
     pol_gen = "10100110111" # generator polynomial g(x) coeffincents
@@ -369,12 +382,13 @@ def format_information_string(string: str) -> str:
     
     return string
 
-def version_information_string(string: str) -> str:
+def version_information_string(version: int) -> str:
 
     """The version information consists of a 18-bit sequence comprising 6 data bits and 12 BCH (Bose-Chaudhuri-Hocquenghem) (18,6) error corretion (EC) bits (pg. 87 Annex C, 
-       C.1 of ISO/IEC 18004:2015). In BCH:
+       C.1 of ISO/IEC 18004:2015). The 6 bits refer to the version of the QR Code.
+       In BCH:
        
-        The parametrs above mention are well-known and selected for reasons related to QR code efficiency. 
+        The parameters above mention are well-known and selected for reasons related to QR code efficiency. 
         The calculation of the 10 EC bits sequence works as in the follow example:
             1. message: 000111 --> convert to a polynomial based on the coefficent: m(x) = x**2 + x + 1
             2. generator polynomial: g(x) = x**12 + x**11 + x**10 + x**9 + x**8 + x**5 + x**2 + 1
@@ -386,7 +400,8 @@ def version_information_string(string: str) -> str:
             5. Add the remainder coefficents (bit information of the EC): 000111 + 110010010100
         (pg. 89 Annex D, D.2 of ISO/IEC 18004:2015).
             """
-
+    
+    string = decToBin(version, 6)
     original = string
     string = string + (18 - len(string))*'0'    
     pol_gen = "1111100100101" 

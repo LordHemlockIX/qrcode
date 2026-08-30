@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 def create_square(matrix: list, c: tuple, radius: int, fill: bool = False, center: bool = False):
 
     """This function is used to create square pattern shapes. In particular in QR code we have two cases:
@@ -80,7 +82,7 @@ def create_timing_pattern(matrix: list, mask_matrix: list, modules: int):
         offset = 7
         offset2 = 1
 
-    # The lenght of the timimg pattern is always the same of the version (modules)
+    # The lenght of the timing pattern is always the same of the version (modules)
     for i in range(7,modules-offset):
         mask_matrix[offset-offset2][i] = 0 # In the mask matrix fill all point with 0 (black pixel)
         mask_matrix[i][offset-offset2] = 0
@@ -156,31 +158,29 @@ def fill_qr_code(bit_string: str, matrix: list, mask_matrix: list, modules: int)
             elif direction == "down":
                 count, posy, direction = zig_zag_down(bit_string, matrix, mask_matrix, modules, posx, posy, count)
 
-import matplotlib.pyplot as plt
+def build_qr_code(modules: int, r_c: str, bit_string: str):
+    matrix = []
+    mask_matrix = []
 
-modules = 45
-r_c= "6,22,38"
+    for i in range(modules):
+        matrix.append([1]*(modules))    
+        mask_matrix.append([1]*(modules))
 
-matrix = []
-mask_matrix = []
+    create_finder_pattern(matrix, mask_matrix, modules)
+    create_timing_pattern(matrix, mask_matrix, modules)
+    create_alignment_pattern(matrix, mask_matrix, modules, r_c)
+    fill_qr_code(bit_string, matrix, mask_matrix, modules)
+    matrix[modules - 8][8] = 0
+    
+    fig, ax =  plt.subplots(1,2, figsize = (10,10))
 
-for i in range(modules):
-    matrix.append([1]*(modules))    
-    mask_matrix.append([1]*(modules))
-
-create_finder_pattern(matrix, mask_matrix, modules)
-create_timing_pattern(matrix, mask_matrix, modules)
-create_alignment_pattern(matrix, mask_matrix, modules, r_c)
-
-fig, ax =  plt.subplots(1,2, figsize = (10,10))
-
-ax[0].imshow(matrix, cmap='gray')
-ax[1].imshow(mask_matrix, cmap='gray')
-ax[0].set_xticks([i for i in range(modules)])
-ax[0].set_yticks([i for i in range(modules)])
-ax[1].set_xticks([i for i in range(modules)])
-ax[1].set_yticks([i for i in range(modules)])
-ax[0].grid()
-ax[1].grid()
-#plt.axis('off')
-plt.show()
+    ax[0].imshow(matrix, cmap='gray')
+    ax[1].imshow(mask_matrix, cmap='gray')
+    ax[0].set_xticks([i for i in range(modules)])
+    ax[0].set_yticks([i for i in range(modules)])
+    ax[1].set_xticks([i for i in range(modules)])
+    ax[1].set_yticks([i for i in range(modules)])
+    #ax[0].grid()
+    #ax[1].grid()
+    #plt.axis('off')
+    plt.show()
