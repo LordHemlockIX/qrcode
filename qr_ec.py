@@ -161,7 +161,7 @@ def ec_remainder(bits_string: str, gx: list, ec_cws: int) -> str:
     
     return bits_string_ec
 
-def qr_encoding_blocks(bits_string: str, n_blocks: list, ec_blocks: str, qr_codewords_capacity: int) -> str:
+def qr_encoding_blocks(bits_string: str, n_blocks: str, ec_blocks: str, qr_codewords_capacity: int) -> str:
 
     """Depending on the Version and EC the codeword shall be subdivided into one or more blocks, to each of which the error correction algotithm shall be applied separately.
         The function takes four inputs:
@@ -172,7 +172,7 @@ def qr_encoding_blocks(bits_string: str, n_blocks: list, ec_blocks: str, qr_code
         It returns the final bytes string sorted accrodingly to the ISO block structures requirements
         (pg. 44 chapter 7.5.1/7.6 of ISO/IEC 18004:2015)"""
 
-    n_blocks = [i for i in n_blocks if i != 0]
+    n_blocks = [int(i) for i in n_blocks.split(",") if i != "0"]
     ec_blocks = ec_blocks.split(";")  
 
     c = 0
