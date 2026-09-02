@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 from qr_encoding import find_mode, encode_data, format_information_string, version_information_string
 from qr_bulding import *
 from qr_ec import qr_encoding_blocks
@@ -43,7 +44,7 @@ for i, line in enumerate(lines):
 			else:
 				dict_qr_info[l[0]+l[4]].append(ele)
                 
-#-----------------------------------------------------------------------------------------------------------------------------------
+# EC Level to EC bits code
 ec_code = {'L':"01",
            'M':"00",
            'Q':"11",
@@ -71,4 +72,23 @@ print("Version Information: ", vis)
 print("Format Information: ", fis)
 print("Final codeword + EC: ", code_word, len(code_word))
 
-build_qr_code(21, "nan", code_word)
+matrix, mask_matrix = build_qr_code(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]], 
+                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Row/Col"]], 
+                                    code_word,
+                                    mask_mode,
+                                    fis,
+                                    vis)
+
+    
+fig, ax =  plt.subplots(1,2, figsize = (10,10))
+
+ax[0].imshow(matrix, cmap='gray')
+ax[1].imshow(mask_matrix, cmap='gray')
+ax[0].set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+ax[0].set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+ax[1].set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+ax[1].set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+#ax[0].grid()
+#ax[1].grid()
+#ax[0].axis('off')
+plt.show()

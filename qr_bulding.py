@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 def create_square(matrix: list, c: tuple, radius: int, fill: bool = False, center: bool = False):
 
     """This function is used to create square pattern shapes. In particular in QR code we have two cases:
@@ -103,7 +101,7 @@ def create_alignment_pattern(matrix: list, mask_matrix: list, modules: int, r_c:
     # Only if version is larger than 21
     if modules > 21:
         cc = []
-        l = r_c.split(',')  
+        l = r_c.split(',') 
         for i in l: # from the r, c values find all possible combinations of rows and columns of possible center poisition of the patterns
             for j in l:
                 r = int(i) 
@@ -112,8 +110,9 @@ def create_alignment_pattern(matrix: list, mask_matrix: list, modules: int, r_c:
                     continue
                 else:   
                     cc.append((r,c))    # Only in this case save the cordinate
-                    
+        print(cc)
         for c in cc:
+            print(c)
             create_square(matrix, c, radius=2, center = True)  # create the pattern
             create_square(mask_matrix, c, radius=2, fill = True, center = True)
 
@@ -154,11 +153,56 @@ def fill_qr_code(bit_string: str, matrix: list, mask_matrix: list, modules: int)
             if i <= 6 and modules >= 21: # In this line there is the timig pattern. Therefore we have to move to the previous columns. Only for version from 1 to 40
                 posx -= 1
             if direction == "up":
-                count, posy, direction = zig_zag_up(bit_string, matrix, mask_matrix, modules, posx, posy, count)
+                try:
+                    count, posy, direction = zig_zag_up(bit_string, matrix, mask_matrix, modules, posx, posy, count)
+                except IndexError:
+                    break
             elif direction == "down":
                 count, posy, direction = zig_zag_down(bit_string, matrix, mask_matrix, modules, posx, posy, count)
 
-def build_qr_code(modules: int, r_c: str, bit_string: str):
+def qr_masking(modules: int, matrix: list, mask_matrix: list, mask_mode: str) -> str:
+    
+    data_mask_dict = {"000": lambda i,j: (i+j)%2,
+                      "001": lambda i,j: i%2,
+                      "010": lambda i,j: int(not(j%3 == 0)),
+                      "011": lambda i,j: int(not((i+j)%3 == 0)),
+                      "100": lambda i,j: ((i//2) + (j//3))%2,
+                      "101": lambda i,j: int(not((i*j)%2 + (i*j)%3 == 0)),
+                      "110": lambda i,j: ((i*j)%2 + (i*j)%3)%2,
+                      "111": lambda i,j: ((i+j)%2 + (i*j)%3)%2}
+    
+    data_mask = []
+    for i in range(modules):
+        l = []
+        for j in range(modules):
+            if mask_matrix[i][j] == 0:
+                l.append(1)
+            else:
+                x = data_mask_dict[mask_mode](i,j)
+                l.append(x)
+        data_mask.append(l)
+        
+    for i in range(modules):
+        for j in range(modules):
+            if mask_matrix[i][j] == 0:
+                matrix[i][j] = matrix[i][j]
+            else:
+                matrix[i][j] = not(matrix[i][j]^data_mask[i][j])
+    
+    return matrix
+    
+def add_information(modules: int, format_info: str, version_inf: str, matrix: list):
+    
+    fi1 = [(0,8), (1,8), (2,8), (3,8), (4,8), (5,8), (7,8), (8,8), (8,7), (8,5), (8,4), (8,3), (8,2), (8,1), (8,0)]
+    f12 = [(8,modules-1), (8,modules-2), (8,modules-3), (8,modules-4), (8,modules-5), (8,modules-6), (8,modules-7), (8,modules-8), (modules-7,8), (modules-6,8), (modules-5,8), (modules-4,8), (modules-3,8), (modules-2,8), (modules-1,8)]
+    
+    matrix[modules - 8][8] = 0
+    for i, ele in enumerate(fi1):
+        matrix[ele[0]][ele[1]] = not(int(format_info[14-i]))
+        matrix[f12[i][0]][f12[i][1]] = not(int(format_info[14-i]))
+         
+def build_qr_code(modules: int, r_c: str, bit_string: str, mask_mode: str, format_info: str, version_inf: str):
+    
     matrix = []
     mask_matrix = []
 
@@ -170,17 +214,7 @@ def build_qr_code(modules: int, r_c: str, bit_string: str):
     create_timing_pattern(matrix, mask_matrix, modules)
     create_alignment_pattern(matrix, mask_matrix, modules, r_c)
     fill_qr_code(bit_string, matrix, mask_matrix, modules)
-    matrix[modules - 8][8] = 0
+    matrix = qr_masking(modules, matrix, mask_matrix, mask_mode)
+    add_information(modules, format_info, version_inf, matrix)
     
-    fig, ax =  plt.subplots(1,2, figsize = (10,10))
-
-    ax[0].imshow(matrix, cmap='gray')
-    ax[1].imshow(mask_matrix, cmap='gray')
-    ax[0].set_xticks([i for i in range(modules)])
-    ax[0].set_yticks([i for i in range(modules)])
-    ax[1].set_xticks([i for i in range(modules)])
-    ax[1].set_yticks([i for i in range(modules)])
-    #ax[0].grid()
-    #ax[1].grid()
-    #plt.axis('off')
-    plt.show()
+    return matrix, mask_matrix
