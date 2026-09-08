@@ -1,3 +1,5 @@
+from qr_mask import qr_do_masking
+
 def create_square(matrix: list, c: tuple, radius: int, fill: bool = False, center: bool = False):
 
     """This function is used to create square pattern shapes. In particular in QR code we have two cases:
@@ -116,7 +118,7 @@ def create_alignment_pattern(matrix: list, mask_matrix: list, modules: int, r_c:
             create_square(matrix, c, radius=2, center = True)  # create the pattern
             create_square(mask_matrix, c, radius=2, fill = True, center = True)
 
-# FILL THE QR CODE WITH TEH TOTAL CODEWORDS BIT STRING
+# FILL THE QR CODE WITH THE TOTAL CODEWORDS BIT STRING
 
 def zig_zag_up(bit_string: str, matrix: list, mask_matrix: list, modules: int, posx: int, posy: int, count: int):
     for i in range(1,modules+1):
@@ -187,7 +189,7 @@ def qr_masking(modules: int, matrix: list, mask_matrix: list, mask_mode: str) ->
             if mask_matrix[i][j] == 0:
                 matrix[i][j] = matrix[i][j]
             else:
-                matrix[i][j] = not(matrix[i][j]^data_mask[i][j])
+                matrix[i][j] = matrix[i][j]^data_mask[i][j]^1
     
     return matrix
     
@@ -198,10 +200,10 @@ def add_information(modules: int, format_info: str, version_inf: str, matrix: li
     
     matrix[modules - 8][8] = 0
     for i, ele in enumerate(fi1):
-        matrix[ele[0]][ele[1]] = not(int(format_info[14-i]))
-        matrix[f12[i][0]][f12[i][1]] = not(int(format_info[14-i]))
+        matrix[ele[0]][ele[1]] = int(format_info[14-i])^1
+        matrix[f12[i][0]][f12[i][1]] = int(format_info[14-i])^1
          
-def build_qr_code(modules: int, r_c: str, bit_string: str, mask_mode: str, format_info: str, version_inf: str):
+def build_qr_code(modules: int, r_c: str, bit_string: str, format_info: str, version_inf: str, mask_mode = ""):
     
     matrix = []
     mask_matrix = []
@@ -214,7 +216,8 @@ def build_qr_code(modules: int, r_c: str, bit_string: str, mask_mode: str, forma
     create_timing_pattern(matrix, mask_matrix, modules)
     create_alignment_pattern(matrix, mask_matrix, modules, r_c)
     fill_qr_code(bit_string, matrix, mask_matrix, modules)
-    matrix = qr_masking(modules, matrix, mask_matrix, mask_mode)
+    #matrix = qr_masking(modules, matrix, mask_matrix, mask_mode)
+    matrix = qr_do_masking(modules, matrix, mask_matrix, mode = mask_mode)
     add_information(modules, format_info, version_inf, matrix)
-    
+
     return matrix, mask_matrix

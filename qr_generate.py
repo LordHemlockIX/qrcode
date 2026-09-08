@@ -75,9 +75,9 @@ print("Final codeword + EC: ", code_word, len(code_word))
 matrix, mask_matrix = build_qr_code(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]], 
                                     dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Row/Col"]], 
                                     code_word,
-                                    mask_mode,
                                     fis,
-                                    vis)
+                                    vis,
+                                    mask_mode)
 
     
 fig, ax =  plt.subplots(1,2, figsize = (10,10))
