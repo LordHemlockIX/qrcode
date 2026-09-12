@@ -88,10 +88,10 @@ def n1_penalty_count(modules: int, matrix: list) -> int:
 	penalty = 0
 	for key, val in n1.items():
 		penalty += val*(3+(key-5))
-	#print(n1)
+	#print("N1", n1, penalty)
 	return penalty
 
-def n2_penalty_count(modules: int, matrxi: list) -> int:
+def n2_penalty_count(modules: int, matrix: list) -> int:
 
 	count = 0
 	for i in range(modules-1):
@@ -100,61 +100,61 @@ def n2_penalty_count(modules: int, matrxi: list) -> int:
 				count += 1
 			elif matrix[i][j] == matrix[i][j+1] == matrix[i+1][j+1] == matrix[i+1][j] == 0:
 				count += 1
-	
+	#print("N2", count, count*3)
 	return count*3
 
 def n3_penalty_count(modules: int, matrix: list) -> int:
 	
-	pattern = [0,1,0,1,0]
+	pattern = [0,1,0,0,0,1,0]
 	
 	pattern_row_pos = []
 	pattern_col_pos = []
 	
 	# Row pattern check
 	for i in range(modules):
-		for j in range(modules-4):
+		for j in range(modules-6):
 			check = 0
 			for k in range(len(pattern)):
 				if pattern[k] == matrix[i][j+k]:
 					check += 1
 				else:
 					break
-			if check == 5:
+			if check == 7:
 				pattern_row_pos.append((i,j))
 	
 	count = 0			
 	for row, col in pattern_row_pos:
-		if col >= 5:
-			#print("Sub", row, col, " | ", matrix[row][col-1], matrix[row][col-2], matrix[row][col-3], matrix[row][col-4], matrix[row][col-5])
-			if matrix[row][col-1] == matrix[row][col-2] == matrix[row][col-3] == matrix[row][col-4] == matrix[row][col-5] == 1:
+		if col >= 7:
+			#print("Sub", row, col, " | ", matrix[row][col-1], matrix[row][col-2], matrix[row][col-3], matrix[row][col-4])
+			if matrix[row][col-1] == matrix[row][col-2] == matrix[row][col-3] == matrix[row][col-4] == 1:
 				count += 1
-		elif col + 4 <= modules - 6:
+		elif col + 6 <= modules - 8:
 			#print("Add", row, col+4, " | ", matrix[row][col+4+1], matrix[row][col+4+2], matrix[row][col+4+3], matrix[row][col+4+4])
-			if matrix[row][col+4+1] == matrix[row][col+4+2] == matrix[row][col+4+3] == matrix[row][col+4+4] == matrix[row][col+4+5] == 1:
+			if matrix[row][col+4+1] == matrix[row][col+4+2] == matrix[row][col+4+3] == matrix[row][col+4+4] == 1:
 				count += 1
 	
 	# Col pattern check			
 	for i in range(modules):
-		for j in range(modules-4):
+		for j in range(modules-6):
 			check = 0
 			for k in range(len(pattern)):
 				if pattern[k] == matrix[j+k][i]:
 					check += 1
 				else:
 					break
-			if check == 5:
+			if check == 7:
 				pattern_col_pos.append((j,i))
-			
+	
 	for row, col in pattern_col_pos:
-		if row >= 5:
+		if row >= 7:
 			#print("Sub", row, col, " | ", matrix[row-1][col], matrix[row-2][col], matrix[row-3][col], matrix[row-4][col])
 			if matrix[row-1][col] == matrix[row-2][col] == matrix[row-3][col] == matrix[row-4][col] == 1:
 				count += 1
-		elif row + 4 <= modules - 6:
-			#print("Add", row+4, col, " | ", matrix[row+4+1][col], matrix[row+4+2][col], matrix[row+4+3][col], matrix[row+4+4][col], matrix[row+4+5][col])
-			if matrix[row+4+1][col] == matrix[row+4+2][col] == matrix[row+4+3][col] == matrix[row+4+4][col] == matrix[row+4+5][col] == 1:
+		elif row + 6 <= modules - 8:
+			#print("Add", row+4, col, " | ", matrix[row+4+1][col], matrix[row+4+2][col], matrix[row+4+3][col], matrix[row+4+4][col])
+			if matrix[row+4+1][col] == matrix[row+4+2][col] == matrix[row+4+3][col] == matrix[row+4+4][col] == 1:
 				count += 1
-	
+	#print("N3", count, count*40)
 	return count*40
 	
 def n4_penalty_count(modules: int, matrix: list) -> int:
@@ -165,14 +165,14 @@ def n4_penalty_count(modules: int, matrix: list) -> int:
 		for j in range(modules):
 			if matrix[i][j] == 0:
 				count += 1
-				
-	ratio = count*100//(modules**2)
+		
+	ratio = count*100/(modules**2)
 
 	for step in range(1,11):
 		if ratio >= 50 - 5*step and ratio <= 50 + 5*step:
 			penalty = 10*(step-1)
 			break
-		
+	#print("N4", count, ratio, penalty)	
 	return penalty
 
 def qr_micro_penalty_count(modules: int, matrix: list) -> int:
@@ -196,72 +196,61 @@ def qr_micro_penalty_count(modules: int, matrix: list) -> int:
 
 def qr_xoring(modules: int, matrix: list, mask_matrix: list, data_mask_dict: dict, mask_mode: str) -> list:
 	
+	matrix2 = []
 	data_mask = []
 	for i in range(modules):
 		l = []
+		l1 = []
 		for j in range(modules):
+			l1.append(1)
 			if mask_matrix[i][j] == 0:
 				l.append(1)
 			else:
 				x = data_mask_dict[mask_mode](i,j)
 				l.append(x)
 		data_mask.append(l)
-			
+		matrix2.append(l)
+				
 	for i in range(modules):
 		for j in range(modules):
 			if mask_matrix[i][j] == 0:
-				matrix[i][j] = matrix[i][j]
+				matrix2[i][j] = matrix[i][j]
 			else:
-				matrix[i][j] = matrix[i][j]^data_mask[i][j]^1
-	
-	return matrix            
+				matrix2[i][j] = matrix[i][j]^data_mask[i][j]^1
+
+	return matrix2            
     
-def qr_penalty_count(modules: int, matrix: list, mask_matrix: list) -> str:
+def qr_penalty_count(modules: int, matrix: list) -> int:
+	
+	penalty = 0
+	if modules >= 21:
+		penalty += n1_penalty_count(modules, matrix)
+		penalty += n2_penalty_count(modules, matrix)
+		penalty += n3_penalty_count(modules, matrix)
+		penalty += n4_penalty_count(modules, matrix)
+	elif modules < 21:
+		penalty = qr_micro_penalty_count(modules, matrix2)
+	
+	return penalty
+	
+def find_best_mask(version: str, modules: int, ec_code: str, matrix: list, mask_matrix: list, add_information) -> str:
 	
 	penalty_dict = {}
 	data_mask_dict = {}
 	
-	if modules >= 1:
+	if modules >= 21:
 		data_mask_dict = qr_mask_dict
-	elif modules < 0:
+	elif modules < 21:
 		data_mask_dict = micro_mask_dict
-	
+
 	for mask_mode in data_mask_dict:
-		matrix = qr_xoring(modules, matrix, mask_matrix, data_mask, mask_mode)
-		
-		penalty = 0
-		if modules >= 1:
-			penalty_dict[mask_mode] += n1_penalty_count(modules, matrix)
-			penalty_dict[mask_mode] += n2_penalty_count(modules, matrix)
-			penalty_dict[mask_mode] += n3_penalty_count(modules, matrix)
-			penalty_dict[mask_mode] += n4_penalty_count(modules, matrix)
-			penalty_dict[penalty] = mask_mode
-		elif modules < 0:
-			penalty_dict[mask_mode] += qr_micro_penalty_count(modules, matrix)
-			
-	if modules >= 1:
-			mask_mode = penalty_dict[min(penalty_dict.values())]
-	elif modules < 0:
-		mask_mode = penalty_dict[max(penalty_dict.values())]
-	 
+		matrix2 = qr_xoring(modules, matrix, mask_matrix, data_mask_dict, mask_mode)
+		add_information(version, modules, ec_code, mask_mode, matrix2)
+		penalty_dict[mask_mode] = qr_penalty_count(modules, matrix2)
+	
+	if modules >= 21:
+		mask_mode = min(penalty_dict, key=penalty_dict.get)
+	elif modules < 21:
+		mask_mode = max(penalty_dict, key=penalty_dict.get)
+	
 	return mask_mode
-	 
-def qr_do_masking(modules: int, matrix: list, mask_matrix: list, mode = ""):
-	
-	if mode and set(mode) <= {'0','1'} and len(mode) == 2:
-		matrix = qr_xoring(modules, matrix, mask_matrix, micro_mask_dict, mode)
-	elif mode and set(mode) <= {'0','1'} and len(mode) == 3:
-		matrix = qr_xoring(modules, matrix, mask_matrix, qr_mask_dict, mode)
-	elif mode == "":
-		mask_mode = qr_penalty_count(modules, matrix, mask_matrix)
-		matrix = qr_xoring(modules, matrix, mask_matrix, data_mask, mask_mode)
-	else:
-		print("Input non valido")
-		return 0
-	
-	return matrix
-	
-		
-		
-			 
-	 

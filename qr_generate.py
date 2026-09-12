@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
-from qr_encoding import find_mode, encode_data, format_information_string, version_information_string
-from qr_bulding import *
+
 from qr_ec import qr_encoding_blocks
 from qr_bulding import build_qr_code
+from qr_encoding import find_mode, encode_data
         
 #-----------------------------------------------------------------------------------------------------------------------------------
 # A. Version (for standard QR Code from 1 to 40).
@@ -50,45 +50,38 @@ ec_code = {'L':"01",
            'Q':"11",
            'H':"10"}
 #-----------------------------------------------------------------------------------------------------------------------------------
-           
-data = "01234567"
+
+data = "Hello, world! 123"
 version = "1"
-ec_mode = "M"
-mask_mode = "010"
+ec_mode = "L"
+mask_mode = ""
 mode = find_mode(data)
 code_word = encode_data(data, mode, int(version), dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_data_bits"]])
-fis = format_information_string(ec_code[ec_mode], mask_mode)
-vis = version_information_string(int(version))
-code_word = qr_encoding_blocks(code_word, 
-                                dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_error_correction_blocks"]], 
-                                dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Error_correction_per_block"]], 
-                                dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Total_number_of_codewords"]])
+if code_word != None:
+    code_word = qr_encoding_blocks(code_word, 
+                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_error_correction_blocks"]], 
+                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Error_correction_per_block"]], 
+                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Total_number_of_codewords"]])
 
-print("Version: ",version)
-print("Mode: ",mode)
-print("EC Level: ", ec_mode, ec_code[ec_mode])
-print("Mask Mode: ",mask_mode)
-print("Version Information: ", vis)
-print("Format Information: ", fis)
-print("Final codeword + EC: ", code_word, len(code_word))
+    print("Version: ",version)
+    print("Mode: ",mode)
+    print("EC Level: ", ec_mode, ec_code[ec_mode])
+    print("Final codeword + EC: ", code_word, len(code_word))
 
-matrix, mask_matrix = build_qr_code(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]], 
-                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Row/Col"]], 
-                                    code_word,
-                                    fis,
-                                    vis,
-                                    mask_mode)
+    matrix = build_qr_code(version,
+                           dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]], 
+                           dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Row/Col"]],
+                           ec_code[ec_mode], 
+                           code_word,
+                           mask_mode)
 
-    
-fig, ax =  plt.subplots(1,2, figsize = (10,10))
+        
+    fig, ax =  plt.subplots(1,1, figsize = (10,10))
 
-ax[0].imshow(matrix, cmap='gray')
-ax[1].imshow(mask_matrix, cmap='gray')
-ax[0].set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
-ax[0].set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
-ax[1].set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
-ax[1].set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
-#ax[0].grid()
-#ax[1].grid()
-#ax[0].axis('off')
-plt.show()
+    ax.imshow(matrix, cmap='gray')
+    ax.set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]]+8)])
+    ax.set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]]+8)])
+    #ax[0].grid()
+    #ax[1].grid()
+    #ax[0].axis('off')
+    plt.show()

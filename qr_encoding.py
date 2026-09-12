@@ -273,7 +273,7 @@ def padding(version: int, bits_string: str, data_bits_capacity: int) -> str:
         bits_string += '0'*(data_bits_capacity - len(bits_string))
         print(f"Partial Terminator added: {data_bits_capacity - len(bits_string)}")
     else:
-        if len(bits_string) + 4 < data_bits_capacity:
+        if len(bits_string) + 4 <= data_bits_capacity:
             bits_string += "0000"
             q = (data_bits_capacity- len(bits_string))//8
             x = data_bits_capacity - len(bits_string) - q*8
@@ -366,14 +366,16 @@ def format_information_string(EC_level: str, mask_mode: str) -> str:
     original = string
     string = string + (15 - len(string))*'0'    # This correspond to 3. (example. 00101 0000000000 --> x**12 + x**10)
     pol_gen = "10100110111" # generator polynomial g(x) coeffincents
-    
     # Polynomial division in modul 2, GF(2). It is the binary approch to do the algebric polynomial operation
     while len(string) > 10: # The order of the remainder has to be <= than maximum order of g(x) since it means that m(x) is still divisible (In the example above mean x**9)
         string= remove_zeros(string)    # In the example above would be 101 0000000000
         pol_gen += (len(string) - len(pol_gen))*'0'
         string = XOR(string, pol_gen)   # In the example above 0000011011100
         string= remove_zeros(string)    # In the example above 11011100. Now since the maximum order is x**7, is not divisible anymore for x**10. So stop here.
-    
+
+    if string == "1": # In the case of EC_level 00 and mask mode 000
+        string = "0"
+        
     if len(string) < 10:
         string = (10 - len(string))*'0' + string
         

@@ -1,4 +1,5 @@
-from qr_mask import qr_do_masking
+from qr_mask import micro_mask_dict, qr_mask_dict, qr_xoring, find_best_mask, qr_penalty_count
+from qr_encoding import format_information_string, version_information_string
 
 def create_square(matrix: list, c: tuple, radius: int, fill: bool = False, center: bool = False):
 
@@ -112,9 +113,8 @@ def create_alignment_pattern(matrix: list, mask_matrix: list, modules: int, r_c:
                     continue
                 else:   
                     cc.append((r,c))    # Only in this case save the cordinate
-        print(cc)
+        
         for c in cc:
-            print(c)
             create_square(matrix, c, radius=2, center = True)  # create the pattern
             create_square(mask_matrix, c, radius=2, fill = True, center = True)
 
@@ -161,49 +161,60 @@ def fill_qr_code(bit_string: str, matrix: list, mask_matrix: list, modules: int)
                     break
             elif direction == "down":
                 count, posy, direction = zig_zag_down(bit_string, matrix, mask_matrix, modules, posx, posy, count)
-
-def qr_masking(modules: int, matrix: list, mask_matrix: list, mask_mode: str) -> str:
     
-    data_mask_dict = {"000": lambda i,j: (i+j)%2,
-                      "001": lambda i,j: i%2,
-                      "010": lambda i,j: int(not(j%3 == 0)),
-                      "011": lambda i,j: int(not((i+j)%3 == 0)),
-                      "100": lambda i,j: ((i//2) + (j//3))%2,
-                      "101": lambda i,j: int(not((i*j)%2 + (i*j)%3 == 0)),
-                      "110": lambda i,j: ((i*j)%2 + (i*j)%3)%2,
-                      "111": lambda i,j: ((i+j)%2 + (i*j)%3)%2}
+def add_information(version: str, modules: int, ec_code: str, mask_mode: str, matrix: list):
     
-    data_mask = []
-    for i in range(modules):
-        l = []
-        for j in range(modules):
-            if mask_matrix[i][j] == 0:
-                l.append(1)
-            else:
-                x = data_mask_dict[mask_mode](i,j)
-                l.append(x)
-        data_mask.append(l)
-        
-    for i in range(modules):
-        for j in range(modules):
-            if mask_matrix[i][j] == 0:
-                matrix[i][j] = matrix[i][j]
-            else:
-                matrix[i][j] = matrix[i][j]^data_mask[i][j]^1
-    
-    return matrix
-    
-def add_information(modules: int, format_info: str, version_inf: str, matrix: list):
+    fis = format_information_string(ec_code, mask_mode)
     
     fi1 = [(0,8), (1,8), (2,8), (3,8), (4,8), (5,8), (7,8), (8,8), (8,7), (8,5), (8,4), (8,3), (8,2), (8,1), (8,0)]
     f12 = [(8,modules-1), (8,modules-2), (8,modules-3), (8,modules-4), (8,modules-5), (8,modules-6), (8,modules-7), (8,modules-8), (modules-7,8), (modules-6,8), (modules-5,8), (modules-4,8), (modules-3,8), (modules-2,8), (modules-1,8)]
     
     matrix[modules - 8][8] = 0
     for i, ele in enumerate(fi1):
-        matrix[ele[0]][ele[1]] = int(format_info[14-i])^1
-        matrix[f12[i][0]][f12[i][1]] = int(format_info[14-i])^1
-         
-def build_qr_code(modules: int, r_c: str, bit_string: str, format_info: str, version_inf: str, mask_mode = ""):
+        matrix[ele[0]][ele[1]] = int(fis[14-i])^1
+        matrix[f12[i][0]][f12[i][1]] = int(fis[14-i])^1
+    
+    if modules > 45:
+        vis = version_information_string(int(version))
+        
+def apply_masking(version: str, modules: int, ec_code: str, matrix: list, mask_matrix: list, mode: str = "") -> list:
+    
+    mask_mode = mode
+    
+    if mode and set(mode) <= {'0','1'} and len(mode) == 2:
+        matrix = qr_xoring(modules, matrix, mask_matrix, micro_mask_dict, mode)
+    elif mode and set(mode) <= {'0','1'} and len(mode) == 3:
+        matrix = qr_xoring(modules, matrix, mask_matrix, qr_mask_dict, mode)
+        add_information(version, modules, ec_code, mask_mode, matrix)
+    elif mode == "":
+        mask_mode = find_best_mask(version, modules, ec_code, matrix, mask_matrix, add_information)
+        print("Mask Mode: ", mask_mode)
+        if modules >= 21:
+            matrix = qr_xoring(modules, matrix, mask_matrix, qr_mask_dict, mask_mode)
+            add_information(version, modules, ec_code, mask_mode, matrix)
+        elif modules < 21:
+            matrix = qr_xoring(modules, matrix, mask_matrix, micro_mask_dict, mask_mode)
+            add_information(version, modules, ec_code, mask_mode, matrix)
+    else:
+        print("Input non valido")
+        return 0
+    
+    return matrix
+
+def add_quite_zone(modules: int, matrix: list) -> list:
+    
+    line = [1 for i in range(4)]
+
+    for i in range(modules):
+        matrix[i] = line + matrix[i] + line
+
+    line = [1 for i in range(modules+8)]
+
+    for i in range(4):
+        matrix.insert(0, line)
+        matrix.append(line)
+
+def build_qr_code(version: str, modules: int, r_c: str, ec_code: str, bit_string: str, mask_mode: str = ""):
     
     matrix = []
     mask_matrix = []
@@ -216,8 +227,7 @@ def build_qr_code(modules: int, r_c: str, bit_string: str, format_info: str, ver
     create_timing_pattern(matrix, mask_matrix, modules)
     create_alignment_pattern(matrix, mask_matrix, modules, r_c)
     fill_qr_code(bit_string, matrix, mask_matrix, modules)
-    #matrix = qr_masking(modules, matrix, mask_matrix, mask_mode)
-    matrix = qr_do_masking(modules, matrix, mask_matrix, mode = mask_mode)
-    add_information(modules, format_info, version_inf, matrix)
+    matrix = apply_masking(version, modules, ec_code, matrix, mask_matrix, mode = mask_mode)
+    add_quite_zone(modules, matrix)
 
-    return matrix, mask_matrix
+    return matrix
