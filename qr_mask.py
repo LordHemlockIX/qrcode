@@ -130,7 +130,7 @@ def n3_penalty_count(modules: int, matrix: list) -> int:
 				count += 1
 		elif col + 6 <= modules - 8:
 			#print("Add", row, col+4, " | ", matrix[row][col+4+1], matrix[row][col+4+2], matrix[row][col+4+3], matrix[row][col+4+4])
-			if matrix[row][col+4+1] == matrix[row][col+4+2] == matrix[row][col+4+3] == matrix[row][col+4+4] == 1:
+			if matrix[row][col+6+1] == matrix[row][col+6+2] == matrix[row][col+6+3] == matrix[row][col+6+4] == 1:
 				count += 1
 	
 	# Col pattern check			
@@ -152,7 +152,7 @@ def n3_penalty_count(modules: int, matrix: list) -> int:
 				count += 1
 		elif row + 6 <= modules - 8:
 			#print("Add", row+4, col, " | ", matrix[row+4+1][col], matrix[row+4+2][col], matrix[row+4+3][col], matrix[row+4+4][col])
-			if matrix[row+4+1][col] == matrix[row+4+2][col] == matrix[row+4+3][col] == matrix[row+4+4][col] == 1:
+			if matrix[row+6+1][col] == matrix[row+6+2][col] == matrix[row+6+3][col] == matrix[row+6+4][col] == 1:
 				count += 1
 	#print("N3", count, count*40)
 	return count*40
@@ -229,7 +229,7 @@ def qr_penalty_count(modules: int, matrix: list) -> int:
 		penalty += n3_penalty_count(modules, matrix)
 		penalty += n4_penalty_count(modules, matrix)
 	elif modules < 21:
-		penalty = qr_micro_penalty_count(modules, matrix2)
+		penalty = qr_micro_penalty_count(modules, matrix)
 	
 	return penalty
 	

@@ -38,50 +38,50 @@ for i, line in enumerate(lines):
 			dict_qr_info["cols"][ele] = j
 	else:
 		dict_qr_info[l[0]+l[4]] = [] 
-		for ele in l[1:]:
-			if ele.isdigit():
+		for j, ele in enumerate(l[1:]):
+			if ele.isdigit() and j != 4:
 				dict_qr_info[l[0]+l[4]].append(int(ele))
 			else:
 				dict_qr_info[l[0]+l[4]].append(ele)
                 
-# EC Level to EC bits code
-ec_code = {'L':"01",
-           'M':"00",
-           'Q':"11",
-           'H':"10"}
 #-----------------------------------------------------------------------------------------------------------------------------------
 
-data = "Hello, world! 123"
-version = "1"
-ec_mode = "L"
+data = "4231"
+version = "-4"
+ec_mode = "nan"
+ec_code = dict_qr_info[version+ec_mode][dict_qr_info["cols"]["EC_Code"]]
 mask_mode = ""
 mode = find_mode(data)
 code_word = encode_data(data, mode, int(version), dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_data_bits"]])
-if code_word != None:
-    code_word = qr_encoding_blocks(code_word, 
+if len(code_word) == dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_data_bits"]]:
+    code_word = qr_encoding_blocks(version, code_word, 
                                     dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_error_correction_blocks"]], 
                                     dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Error_correction_per_block"]], 
-                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Total_number_of_codewords"]])
+                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Total_number_of_codewords"]],
+                                    dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Remainder_Bits"]])
 
     print("Version: ",version)
     print("Mode: ",mode)
-    print("EC Level: ", ec_mode, ec_code[ec_mode])
+    print("EC Level: ", ec_mode, ec_code)
+    print("Remainder bits: ", dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Remainder_Bits"]])
     print("Final codeword + EC: ", code_word, len(code_word))
 
     matrix = build_qr_code(version,
                            dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]], 
                            dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Row/Col"]],
-                           ec_code[ec_mode], 
+                           ec_code, 
                            code_word,
                            mask_mode)
-
-        
+    
     fig, ax =  plt.subplots(1,1, figsize = (10,10))
 
     ax.imshow(matrix, cmap='gray')
-    ax.set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]]+8)])
-    ax.set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]]+8)])
+    #àx.set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+    #ax.set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
     #ax[0].grid()
     #ax[1].grid()
     #ax[0].axis('off')
     plt.show()
+else:
+    print("The capacity of the version choosen is too small")
+

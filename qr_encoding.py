@@ -100,6 +100,7 @@ def char_count(data, version, mode) -> str:
         by the ISO/IEC 18004:2015 (pg. 31 Table 3)"""
     
     lunghezza = len(data)
+    
     m_micro = {"Numeric": [3,4,5,6],
                "Alphanumeric": [0,3,4,5],
                "Byte": [0,0,4,5],
@@ -144,7 +145,13 @@ def encode_numeric_qr(data: str, version: int) -> str:
     # For the numeric encoding the ISO/IEC 18004:2015 requires that data are group by three and encoded in 10 bits (if only 2 char in 7 bit and 1 in 4 bit)
     n_bits = {3:10, 2:7, 1:4}
     
-    for i in range(0,len(data)//3+1):
+    # Add a 1 in the range for the grouping of 3 element is the remainder is diffent from zero.
+    # 9//3 = 3 so the range must be up tp 3, but 8//3 = 2 but also in this case the range has to be up to 3
+    add = 0
+    if len(data)%3 != 0:
+        add = 1
+    
+    for i in range(0,len(data)//3+add):
         dec = data[i*3:(i*3)+3]
         bits = decToBin(int(dec), n_bits[len(dec)])
         bits_string += bits 
@@ -204,7 +211,7 @@ def encode_byte_qr(data: str, version: int) -> str:
         bits_string = "0100" # Byte mode indicator encoding
     
     char_count_bits = char_count(data, version, "Byte") # character count into binary encoding
-    
+
     bits_string += char_count_bits # concatenate
     
     for i in data:
@@ -269,28 +276,29 @@ def padding(version: int, bits_string: str, data_bits_capacity: int) -> str:
 
     pad = {0:"11101100", 1:"00010001"}
 
-    if version < 0:
+    """if version < 0:
         bits_string += '0'*(data_bits_capacity - len(bits_string))
-        print(f"Partial Terminator added: {data_bits_capacity - len(bits_string)}")
-    else:
-        if len(bits_string) + 4 <= data_bits_capacity:
-            bits_string += "0000"
-            q = (data_bits_capacity- len(bits_string))//8
-            x = data_bits_capacity - len(bits_string) - q*8
-            bits_string += '0'*x
-            for i in range(q):
-                bits_string += pad[i%2]
-            if debug:
-                print("Four Terminator added")
-                print(f"Padding of zeros added: {x}")
-                print(f"Padding codewords added: {q}")
-        elif data_bits_capacity - len(bits_string) < 4:
-            bits_string += '0'*(data_bits_capacity - len(bits_string))
-            if debug:
-                print("Partial Terminator added")
-        elif data_bits_capacity == len(bits_string):
-            if debug:
-                print("No padding required")
+        if debug:
+            print(f"Partial Terminator added: {data_bits_capacity - len(bits_string)}")
+    else:"""
+    if len(bits_string) + 4 <= data_bits_capacity:
+        bits_string += "0000"
+        q = (data_bits_capacity- len(bits_string))//8
+        x = data_bits_capacity - len(bits_string) - q*8
+        bits_string += '0'*x
+        for i in range(q):
+            bits_string += pad[i%2]
+        if debug:
+            print("Four Terminator added")
+            print(f"Padding of zeros added: {x}")
+            print(f"Padding codewords added: {q}")
+    elif data_bits_capacity - len(bits_string) < 4:
+        bits_string += '0'*(data_bits_capacity - len(bits_string))
+        if debug:
+            print("Partial Terminator added")
+    elif data_bits_capacity == len(bits_string):
+        if debug:
+            print("No padding required")
     
     return bits_string
 
@@ -308,7 +316,7 @@ def encode_data(data: str, mode: str, version: int, data_bits_capacity: int) -> 
         bits_string = encode_kanji_qr(data, version)
 
     bits_string = padding(version, bits_string, data_bits_capacity)
-
+    
     if len(bits_string) == data_bits_capacity:
         return bits_string
     else:
@@ -335,7 +343,7 @@ def XOR(string1: str, string2: str) -> str:
         new_str += str(int(string1[i]) ^ int(string2[i]))
     return new_str
 
-def format_information_string(EC_level: str, mask_mode: str) -> str:
+def format_information_string(modules: int, EC_level: str, mask_mode: str) -> str:
 
     """The format information consists of a 15-bit sequence comprising 5 data bits and 10 BCH (Bose-Chaudhuri-Hocquenghem) (15,5) error corretion (EC) bits.
        The 5 data bits consist of 2 bits for the EC level and 3 for the masking.
@@ -380,7 +388,10 @@ def format_information_string(EC_level: str, mask_mode: str) -> str:
         string = (10 - len(string))*'0' + string
         
     string = original + string
-    string = XOR(string, "101010000010010")
+    if modules >= 21:
+        string = XOR(string, "101010000010010")
+    else:
+        string = XOR(string, "100010001000101")
     
     return string
 

@@ -139,12 +139,15 @@ def qr_generator_poly(ec_cws: int) -> list:
     return g
 
 # 5. Perform the Reed-Solom operation and calculate the EC bits
-def ec_remainder(bits_string: str, gx: list, ec_cws: int) -> str:
+def ec_remainder(bits_string: str, gx: list, ec_cws: int, k: int) -> str:
 
     # Starting form the final bits string divide it in bytes and calculate the corresponding decimal value. This will be the coefficents of the polynomial D(x)
     dx = []
-    for i in range(int(len(bits_string)/8)):
-        dx.append(binToDec(bits_string[i*8:i*8+8]))
+    for i in range(k):  # k = number of data codewords --> the number of bytes (in same cases is not a full byte like for M1 micro we have 20 bits, so 2 bytes and a nibble)
+        if len(bits_string[i*8:i*8+8]) == 8:
+            dx.append(binToDec(bits_string[i*8:i*8+8]))
+        elif len(bits_string[i*8:i*8+8]) == 4:
+            dx.append(binToDec(bits_string[i*8:i*8+8] + "0000"))
     dx_new = dx + [0]*ec_cws    # Add the space for the EC bytes, it would be as doing D(x)*x**ec_cws. So we are shifting the degree of the polinomial to have a base as big at least as the one of the G(x)
 
     for i in range(len(dx)):
@@ -153,7 +156,7 @@ def ec_remainder(bits_string: str, gx: list, ec_cws: int) -> str:
         if coef != 0:   # If the coefficent is zero it mean that it has already been reduced to the minimum
             for j in range(len(gx)):    # WE loop for every values og og beazued we have to imagein a operation like such: g(x) = (ax**2 + b*x + c)*coef
                 dx_new[i + j] ^= gf_mul(gx[j], coef)
-
+    
     # Create the EC bit string, by converting the decimal coefficents above calculated into binary
     bits_string_ec = ""
     for i in dx_new[-ec_cws:]:
@@ -161,7 +164,7 @@ def ec_remainder(bits_string: str, gx: list, ec_cws: int) -> str:
     
     return bits_string_ec
 
-def qr_encoding_blocks(bits_string: str, n_blocks: str, ec_blocks: str, qr_codewords_capacity: int) -> str:
+def qr_encoding_blocks(version: str, bits_string: str, n_blocks: str, ec_blocks: str, qr_codewords_capacity: int, remainder_bits: int) -> str:
 
     """Depending on the Version and EC the codeword shall be subdivided into one or more blocks, to each of which the error correction algotithm shall be applied separately.
         The function takes four inputs:
@@ -188,7 +191,7 @@ def qr_encoding_blocks(bits_string: str, n_blocks: str, ec_blocks: str, qr_codew
             bits_string_block = bits_string[offset*8:(int(ec_block[1]) + offset)*8]
             ec_cws = int(ec_block[0]) - int(ec_block[1])
             gx = qr_generator_poly(ec_cws)  # Calculate the generator polinomial
-            bits_string_ec = ec_remainder(bits_string_block, gx, ec_cws)    # perfomed the EC bits calculation
+            bits_string_ec = ec_remainder(bits_string_block, gx, ec_cws, int(ec_block[1]))    # perfomed the EC bits calculation
             for col in range(int(ec_block[1])):
                 blocks["data"][c].append(bits_string_block[col*8:col*8+8])
             for col in range(ec_cws):
@@ -207,10 +210,10 @@ def qr_encoding_blocks(bits_string: str, n_blocks: str, ec_blocks: str, qr_codew
                     bits_string += blocks[d][j][i]
                 except IndexError:
                     continue
-
-    # Add the Remanider bits if necessary
-    if len(bits_string) < qr_codewords_capacity*8:
-        bits_string += 0*(qr_codewords_capacity*8 - len(bits_string))  
-        print(f"Remainder bits: {qr_codewords_capacity*8 - len(bits_string)}")          
-    
+                    
+    # Add the Remanider bits if necessary. The final appending of remaninder is already passed as infomration given the version selected.
+    if len(bits_string) < qr_codewords_capacity*8 + remainder_bits:
+        #print(f"Remainder bits: {qr_codewords_capacity*8 + remainder_bits - len(bits_string)}")
+        bits_string += "0"*remainder_bits 
+        
     return bits_string

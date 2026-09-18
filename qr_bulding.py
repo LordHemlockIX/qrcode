@@ -1,4 +1,4 @@
-from qr_mask import micro_mask_dict, qr_mask_dict, qr_xoring, find_best_mask, qr_penalty_count
+from qr_mask import micro_mask_dict, qr_mask_dict, qr_xoring, find_best_mask
 from qr_encoding import format_information_string, version_information_string
 
 def create_square(matrix: list, c: tuple, radius: int, fill: bool = False, center: bool = False):
@@ -164,18 +164,42 @@ def fill_qr_code(bit_string: str, matrix: list, mask_matrix: list, modules: int)
     
 def add_information(version: str, modules: int, ec_code: str, mask_mode: str, matrix: list):
     
-    fis = format_information_string(ec_code, mask_mode)
-    
+    fis = format_information_string(modules, ec_code, mask_mode)
+    print("Format Information: ", fis)
     fi1 = [(0,8), (1,8), (2,8), (3,8), (4,8), (5,8), (7,8), (8,8), (8,7), (8,5), (8,4), (8,3), (8,2), (8,1), (8,0)]
-    f12 = [(8,modules-1), (8,modules-2), (8,modules-3), (8,modules-4), (8,modules-5), (8,modules-6), (8,modules-7), (8,modules-8), (modules-7,8), (modules-6,8), (modules-5,8), (modules-4,8), (modules-3,8), (modules-2,8), (modules-1,8)]
+    fi2 = [(8,modules-1), (8,modules-2), (8,modules-3), (8,modules-4), (8,modules-5), (8,modules-6), (8,modules-7), (8,modules-8), (modules-7,8), (modules-6,8), (modules-5,8), (modules-4,8), (modules-3,8), (modules-2,8), (modules-1,8)]
     
-    matrix[modules - 8][8] = 0
-    for i, ele in enumerate(fi1):
-        matrix[ele[0]][ele[1]] = int(fis[14-i])^1
-        matrix[f12[i][0]][f12[i][1]] = int(fis[14-i])^1
+    fi1_micro = [(1,8), (2,8), (3,8), (4,8), (5,8), (6,8), (7,8), (8,8), (8,7), (8,6), (8,5), (8,4), (8,3), (8,2), (8,1)]
     
-    if modules > 45:
+    for i in range(15):
+        if modules < 21:
+            matrix[fi1_micro[i][0]][fi1_micro[i][1]] = int(fis[14-i])^1
+        else:
+            matrix[fi1[i][0]][fi1[i][1]] = int(fis[14-i])^1
+            matrix[fi2[i][0]][fi2[i][1]] = int(fis[14-i])^1
+    
+    if modules >= 21: 
+        matrix[modules - 8][8] = 0
+    
+    if modules >= 45:
         vis = version_information_string(int(version))
+        print("Version Information: ", vis)
+        vi1 = [(0, modules-11), (0, modules-10), (0, modules-9),
+               (1, modules-11), (1, modules-10), (1, modules-9),
+               (2, modules-11), (2, modules-10), (2, modules-9),
+               (3, modules-11), (3, modules-10), (3, modules-9),
+               (4, modules-11), (4, modules-10), (4, modules-9),
+               (5, modules-11), (5, modules-10), (5, modules-9)] 
+        vi2 = [(modules-11, 0), (modules-10, 0), (modules-9, 0),
+               (modules-11, 1), (modules-10, 1), (modules-9, 1),
+               (modules-11, 2), (modules-10, 2), (modules-9, 2),
+               (modules-11, 3), (modules-10, 3), (modules-9, 3),
+               (modules-11, 4), (modules-10, 4), (modules-9, 4),
+               (modules-11, 5), (modules-10, 5), (modules-9, 5)]
+        
+        for i, ele in enumerate(vi1):
+            matrix[ele[0]][ele[1]] = int(vis[17-i])^1
+            matrix[vi2[i][0]][vi2[i][1]] = int(vis[17-i])^1
         
 def apply_masking(version: str, modules: int, ec_code: str, matrix: list, mask_matrix: list, mode: str = "") -> list:
     
@@ -183,6 +207,7 @@ def apply_masking(version: str, modules: int, ec_code: str, matrix: list, mask_m
     
     if mode and set(mode) <= {'0','1'} and len(mode) == 2:
         matrix = qr_xoring(modules, matrix, mask_matrix, micro_mask_dict, mode)
+        add_information(version, modules, ec_code, mask_mode, matrix)
     elif mode and set(mode) <= {'0','1'} and len(mode) == 3:
         matrix = qr_xoring(modules, matrix, mask_matrix, qr_mask_dict, mode)
         add_information(version, modules, ec_code, mask_mode, matrix)
