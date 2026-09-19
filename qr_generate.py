@@ -46,14 +46,14 @@ for i, line in enumerate(lines):
                 
 #-----------------------------------------------------------------------------------------------------------------------------------
 
-data = "4231"
-version = "-4"
-ec_mode = "nan"
+data = "Hello, world!"
+version = "1"
+ec_mode = "L"
 ec_code = dict_qr_info[version+ec_mode][dict_qr_info["cols"]["EC_Code"]]
 mask_mode = ""
 mode = find_mode(data)
 code_word = encode_data(data, mode, int(version), dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_data_bits"]])
-if len(code_word) == dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_data_bits"]]:
+if code_word != None and len(code_word) == dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_data_bits"]]:
     code_word = qr_encoding_blocks(version, code_word, 
                                     dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_of_error_correction_blocks"]], 
                                     dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Error_correction_per_block"]], 
@@ -83,5 +83,5 @@ if len(code_word) == dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Number_
     #ax[0].axis('off')
     plt.show()
 else:
-    print("The capacity of the version choosen is too small")
+    print("The capacity of the version choosen is too small or other errors!")
 

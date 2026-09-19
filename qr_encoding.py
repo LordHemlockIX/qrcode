@@ -270,35 +270,49 @@ def padding(version: int, bits_string: str, data_bits_capacity: int) -> str:
     """The QR Code requireda certain expected number of bits depending on the versione and EC level. Therefore if the bit string generated, by encoding the data as
             mode indicator + character count + input data bits sequence
         contains a number of bits less than the full capacity we need to pad it and fill the remaining bits.
-        First add the terminator 0000. Maximum 4 bits unless bit string allows less or none.
+        First add the terminator. Maximum 4 bits unless bit string allows less or none.
         If there is still space add: the maximum number of padding bits and fill the remaining empty spaces with 0 bits.
         For a more in depth understanding see pg. 40 chapter 7.4.9/7.4.10 of ISO/IEC 18004:2015"""
-
+    
+    terminator = {-4:"000",
+                  -3:"00000",
+                  -2:"0000000",
+                  -1:"000000000"}
+                  
     pad = {0:"11101100", 1:"00010001"}
-
-    """if version < 0:
-        bits_string += '0'*(data_bits_capacity - len(bits_string))
-        if debug:
-            print(f"Partial Terminator added: {data_bits_capacity - len(bits_string)}")
-    else:"""
-    if len(bits_string) + 4 <= data_bits_capacity:
-        bits_string += "0000"
-        q = (data_bits_capacity- len(bits_string))//8
-        x = data_bits_capacity - len(bits_string) - q*8
-        bits_string += '0'*x
-        for i in range(q):
-            bits_string += pad[i%2]
-        if debug:
-            print("Four Terminator added")
-            print(f"Padding of zeros added: {x}")
-            print(f"Padding codewords added: {q}")
-    elif data_bits_capacity - len(bits_string) < 4:
+    nibble = 0 
+    
+    try:
+        terminator = terminator[version]
+    except KeyError:
+        terminator = "0000"
+    
+    if version == -2 or version == -4:
+        nibble = 4
+    
+    if len(bits_string) + len(terminator) <= data_bits_capacity:
+        bits_string += terminator
+        if data_bits_capacity - len(bits_string) >= nibble:
+            q = (data_bits_capacity - len(bits_string) - nibble)//8
+            x = data_bits_capacity - len(bits_string) - nibble - q*8
+            bits_string += '0'*x
+            for i in range(q):
+                bits_string += pad[i%2]
+            bits_string += '0'*nibble
+            if debug:
+                print("Terminator added")
+                print(f"Padding of zeros added: {x}")
+                print(f"Padding codewords added: {q}")
+                print(f"Nibble: {nibble}")
+    elif data_bits_capacity - len(bits_string) < len(terminator):
         bits_string += '0'*(data_bits_capacity - len(bits_string))
         if debug:
             print("Partial Terminator added")
     elif data_bits_capacity == len(bits_string):
         if debug:
             print("No padding required")
+    else:
+        print(len(bits_string), len(terminator), nibble, data_bits_capacity)
     
     return bits_string
 
@@ -316,7 +330,7 @@ def encode_data(data: str, mode: str, version: int, data_bits_capacity: int) -> 
         bits_string = encode_kanji_qr(data, version)
 
     bits_string = padding(version, bits_string, data_bits_capacity)
-    
+
     if len(bits_string) == data_bits_capacity:
         return bits_string
     else:
