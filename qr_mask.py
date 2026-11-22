@@ -1,3 +1,5 @@
+debug = False
+
 qr_mask_dict = {"000": lambda i,j: (i+j)%2,
 				"001": lambda i,j: i%2,
 	            "010": lambda i,j: int(not(j%3 == 0)),
@@ -88,7 +90,10 @@ def n1_penalty_count(modules: int, matrix: list) -> int:
 	penalty = 0
 	for key, val in n1.items():
 		penalty += val*(3+(key-5))
-	#print("N1", n1, penalty)
+	
+	if debug:
+		print("N1", n1, penalty)
+		
 	return penalty
 
 def n2_penalty_count(modules: int, matrix: list) -> int:
@@ -100,7 +105,9 @@ def n2_penalty_count(modules: int, matrix: list) -> int:
 				count += 1
 			elif matrix[i][j] == matrix[i][j+1] == matrix[i+1][j+1] == matrix[i+1][j] == 0:
 				count += 1
-	#print("N2", count, count*3)
+	if debug:
+		print("N2", count, count*3)
+		
 	return count*3
 
 def n3_penalty_count(modules: int, matrix: list) -> int:
@@ -124,14 +131,18 @@ def n3_penalty_count(modules: int, matrix: list) -> int:
 	
 	count = 0			
 	for row, col in pattern_row_pos:
-		if col >= 7:
-			#print("Sub", row, col, " | ", matrix[row][col-1], matrix[row][col-2], matrix[row][col-3], matrix[row][col-4])
+		if col >= 4:
 			if matrix[row][col-1] == matrix[row][col-2] == matrix[row][col-3] == matrix[row][col-4] == 1:
 				count += 1
-		elif col + 6 <= modules - 8:
-			#print("Add", row, col+4, " | ", matrix[row][col+4+1], matrix[row][col+4+2], matrix[row][col+4+3], matrix[row][col+4+4])
+				if debug:
+					print("Row - Sub: ", row, col)
+					print(matrix[row][col-1], matrix[row][col-2], matrix[row][col-3], matrix[row][col-4])
+		elif col + 6 <= modules - 5:
 			if matrix[row][col+6+1] == matrix[row][col+6+2] == matrix[row][col+6+3] == matrix[row][col+6+4] == 1:
 				count += 1
+				if debug: 
+					print("Row - Add: ", row, col)
+					print(matrix[row][col+6+1], matrix[row][col+6+2], matrix[row][col+6+3], matrix[row][col+6+4])
 	
 	# Col pattern check			
 	for i in range(modules):
@@ -146,15 +157,22 @@ def n3_penalty_count(modules: int, matrix: list) -> int:
 				pattern_col_pos.append((j,i))
 	
 	for row, col in pattern_col_pos:
-		if row >= 7:
-			#print("Sub", row, col, " | ", matrix[row-1][col], matrix[row-2][col], matrix[row-3][col], matrix[row-4][col])
+		if row >= 4:
 			if matrix[row-1][col] == matrix[row-2][col] == matrix[row-3][col] == matrix[row-4][col] == 1:
 				count += 1
-		elif row + 6 <= modules - 8:
-			#print("Add", row+4, col, " | ", matrix[row+4+1][col], matrix[row+4+2][col], matrix[row+4+3][col], matrix[row+4+4][col])
+				if debug:
+					print("Col - Sub: ", row, col)
+					print(matrix[row-1][col], matrix[row-2][col], matrix[row-3][col], matrix[row-4][col])
+		elif row + 6 <= modules - 5:
 			if matrix[row+6+1][col] == matrix[row+6+2][col] == matrix[row+6+3][col] == matrix[row+6+4][col] == 1:
 				count += 1
-	#print("N3", count, count*40)
+				if debug:
+					print("Col - Add: ", row, col)
+					print(matrix[row+6+1][col], matrix[row+6+2][col], matrix[row+6+3][col], matrix[row+6+4][col])
+
+	if debug: 
+		print("N3", count, count*40)
+		
 	return count*40
 	
 def n4_penalty_count(modules: int, matrix: list) -> int:
@@ -172,7 +190,10 @@ def n4_penalty_count(modules: int, matrix: list) -> int:
 		if ratio >= 50 - 5*step and ratio <= 50 + 5*step:
 			penalty = 10*(step-1)
 			break
-	#print("N4", count, ratio, penalty)	
+			
+	if debug:
+		print("N4", count, ratio, penalty)
+			
 	return penalty
 
 def qr_micro_penalty_count(modules: int, matrix: list) -> int:
@@ -191,6 +212,9 @@ def qr_micro_penalty_count(modules: int, matrix: list) -> int:
 		penalty += sum2*16 + sum1
 	elif sum1 <= sum2:
 		penalty += sum1*16 + sum2
+	
+	if debug:
+		print("Micro Penalty: ", penalty, sum1, sum2)
 		
 	return penalty
 

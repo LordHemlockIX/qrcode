@@ -45,7 +45,7 @@ for i, line in enumerate(lines):
 				dict_qr_info[l[0]+l[4]].append(ele)
                 
 #-----------------------------------------------------------------------------------------------------------------------------------
-
+plot = False
 data = "Hello, world!"
 version = "1"
 ec_mode = "L"
@@ -73,15 +73,16 @@ if code_word != None and len(code_word) == dict_qr_info[version+ec_mode][dict_qr
                            code_word,
                            mask_mode)
     
-    fig, ax =  plt.subplots(1,1, figsize = (10,10))
+    if plot:
+        fig, ax =  plt.subplots(1,1, figsize = (10,10))
 
-    ax.imshow(matrix, cmap='gray')
-    #àx.set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
-    #ax.set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
-    #ax[0].grid()
-    #ax[1].grid()
-    #ax[0].axis('off')
-    plt.show()
+        ax.imshow(matrix, cmap='gray')
+        #àx.set_xticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+        #ax.set_yticks([i for i in range(dict_qr_info[version+ec_mode][dict_qr_info["cols"]["Modules"]])])
+        #ax[0].grid()
+        #ax[1].grid()
+        #ax[0].axis('off')
+        plt.show()
 else:
     print("The capacity of the version choosen is too small or other errors!")
 

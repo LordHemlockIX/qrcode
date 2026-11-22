@@ -1,58 +1,122 @@
 debug = False
 
-# LIST OF CHAR FOR THE ALPHANUMERIC MODE
-# This info contain the character for the Alphanumeric encoding according to ISO/IEC 18004:2015 (pg. 28, chapter 7.3.4 and pg. 34 Table 5)
+# EXTENDED CHANNEL INTERPRETATION (ECI) DICTIONARY ENCODING MODE
+# This info contain all the ECI mode that are check for endoing the codewords
 
-alphanumeric_list = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T''U','V','W','X','Y','Z',' ','$','%','*','+','-','.','/',':']
+ECI = {"Latin-2": ["000004","iso-8859-2"],
+       "Latin-3": ["000005","iso-8859-3"],   
+       "Latin-4": ["000006","iso-8859-4"], 
+       "Latin/Cyrillic": ["000007","iso-8859-5"],
+       "Latin/Arabic": ["000008","iso-8859-6"],
+       "Latin/Greek": ["000009","iso-8859-7"],
+       "Latin/Hebrew": ["000010","iso-8859-8"], 
+       "Latin-5": ["000011","iso-8859-9"],
+       "Latin-6": ["000012","iso-8859-10"],
+       "Latin-Thai": ["000013","iso-8859-11"],
+       "Latin-7": ["000015","iso-8859-13"],
+       "Latin-8": ["000016","iso-8859-14"],
+       "Latin-9": ["000017","iso-8859-15"],
+       "Latin-10": ["000018","iso-8859-16"],
+       "Big5": ["000028","big5"],
+       "KS X 1001": ["000030","euc_kr"],
+       "GBK": ["000031","gbk"],
+       "GB 18030": ["000032","gb18030"],
+       "UTF-8":["000026","utf-8"]}
 
 # FUNCTIONS TO DEFINE THE MODE OF THE INPURT STRING
-
-def check_alphanumeric(data: str, alphanumeric_list: list) -> bool:
-
-    """Given a string check if all charaters correspond to the one listed in db_alphacoding"""
-
-    cond = True
-    for j in data:
-        if j in alphanumeric_list:
+def check_numeric(data: str) -> bool:
+    
+    """Given a string check if all charaters correspond to exclusive subset of Numeric encoding (pg. 29, chapter 7.3.3, Annex J pg. 107, Table J.1)"""
+    
+    for c in data:
+        if 0x30 <= ord(c) <= 0x39:  # Numeric exclusive subset
             continue
-        else:
-            cond = False
             
-    return cond
+        return False
+        
+    return True
+    
+def check_alphanumeric(data: str) -> bool:
+
+    """Given a string check if all charaters correspond to exclusive subset Alphanumeric encoding (pg. 29, chapter 7.3.4, Annex J pg. 107, Table J.1)"""
+
+    for c in data:
+        if ord(c) == 0x20 or ord(c) == 0x24 or ord(c) == 0x25 or ord(c) == 0x2A or ord(c) == 0x2B or (0x2D <= ord(c) <= 0x2F) or ord(c) == 0x3A or (0x41 <= ord(c) <= 0x5A):    # Alphanumeric exclusive subset
+            continue
+            
+        return False
+            
+    return True
 
 def check_byte(data: str) -> bool:
 
-    """Given an string asses if it is possible to encode it accordingly to ISO/IEC 8859-1 (1 bytes, so 8-bits, 2**8 = 256 characters). 
-        This is the required encding accordingly to ISO/IEC 18004:2015 (pg. 28, chapter 7.3.5 and pg. 35 Table 6)."""
+    """Given an string asses if it is possible to encode it accordingly to ISO/IEC 8859-1 (1 bytes, so 8-bits, 2**8 = 256 characters) exclusive subset (Annex J pg. 107, Table J.1). 
+        This is the required encding accordingly to ISO/IEC 18004:2015 (pg. 29, chapter 7.3.5 and pg. 35 Table 6).
+    """
     
-    cond = True
-    try:
-        data.encode("iso-8859-1")
-    except UnicodeEncodeError:
-        cond = False
+    for c in data:
+        #print(c, ord(c), 0x00, 0x29)
+        if (0x00 <= ord(c) <= 0x1F) or (0x21 <= ord(c) <= 0x23) or (0x26 <= ord(c) <= 0x29) or ord(c) == 0x2C or (0x3B <= ord(c) <= 0x40) or (0x5B <= ord(c) <= 0xFF):	# Byte exclusive subset
+            continue
+                
+        return False
         
-    return cond
+    return True
 
 def check_kanji(data: str) -> bool:
 
-    """Given an string asses if it is possible to encode it accordingly to iso-8859-1. 
-        This is the required encding accordingly to ISO/IEC 18004:2015 (pg. 28, chapter 7.3.6)."""
+    """
+    Given an string asses if it is possible to encode it accordingly to Shift JIS system based on JIS X 0208. 
+        This is the required encoding accordingly to ISO/IEC 18004:2015 (pg. 37, chapter 7.4.6 and pg 101, Annex H Figure H.1).
+    """
     
-    cond = True
-    try:
-        data.encode("shift_jis")
-    except UnicodeEncodeError:
-        cond = False
+    for c in data:
         
-    return cond 
+        try:
+            kanji = c.encode('shift_jis')
+        except UnicodeEncodeError:
+            return False
+        
+        #Leading byte: 81-9F and E0-EA and EB
+        #Trailing byte: 10-7E and 80-FC (for EB only between 80-BF)
+        if len(kanji) == 2:
+            lead_byte = kanji[0]
+            trail_byte = kanji[1]
 
-def find_mode(data: str, alphanumeric_list: list = alphanumeric_list) -> str:
+            if (129 <= lead_byte <= 159 or 224 <= lead_byte <= 234) and (64 <= trail_byte <= 126 or 128 <= trail_byte <= 252):
+                continue
+            elif lead_byte == 234 and (64 <= trail_byte <= 126 or 128 <= trail_byte <= 191):
+                continue
+            
+            return False
 
-    """Given a string input finds the correct mode to encode it in a QR code accoridnly to ISO/IEC 18004:2015"""
+    return True 
+    
+def check_eci(data: str) -> tuple:
+    
+    """Given a codeword string asses if it is possible to encode by the ECI using the appropriate bytes."""
+    
+    cond = False
+    eci_mode = ""
+    
+    for eci, value in ECI.items():
+        try:
+            data.encode(value[1])
+            cond = True
+            eci_mode = eci
+            break
+        except UnicodeEncodeError:
+            continue
 
-    if data.isdigit():
+    return cond, eci_mode
+
+def find_mode(data: str) -> str:
+
+    """Given a string input finds the correct mode to encode it in a QR code accirdingly to ISO/IEC 18004:2015"""
+
+    if check_numeric(data):
         mode = "Numeric"
-    elif check_alphanumeric(data, alphanumeric_list):
+    elif check_alphanumeric(data):
         mode = "Alphanumeric"
     elif check_byte(data):
         mode = "Byte"
@@ -63,7 +127,15 @@ def find_mode(data: str, alphanumeric_list: list = alphanumeric_list) -> str:
         mode = None
         
     return mode
-
+    
+def find_mode_new(data: str):
+    
+    """
+    Algorithm for bit stearm length optimisation accordingly to what proposed by the ISO/IEC 18004:2015(E) (Annex J pg. 107, chapter J.3)
+    """
+    
+    initial_mode = ""
+        
 # BINARY/DECIMAL CONVETIONS FUNCTIONS
 
 def decToBin(dec: int, n_bits: int) -> str:
@@ -83,7 +155,7 @@ def decToBin(dec: int, n_bits: int) -> str:
     return "".join(bits)[::-1]
 
 def binToDec(binary: str) -> int:
-    """Converta a binary written as a string into a decimal number
+    """Convert a binary written as a string into a decimal number
         return the number as int"""
     
     dec = 0
@@ -94,13 +166,15 @@ def binToDec(binary: str) -> int:
 
 # QR CODE FUNCTIONS TO ENCODE INPUT STRING IN THE APPROPRIATE BITS SEQUENCE
 
-def char_count(data, version, mode) -> str:
+def char_count(data: str, version: int, mode: str, encoding: str) -> str:
 
     """Encode the input data character count in the binary string. The number of bits change accordingly to the mode and the version as described 
         by the ISO/IEC 18004:2015 (pg. 31 Table 3)"""
     
     lunghezza = len(data)
-    
+    if mode == "Byte" and encoding != "":
+        lunghezza = len(data.encode(encoding))
+    print(lunghezza)
     m_micro = {"Numeric": [3,4,5,6],
                "Alphanumeric": [0,3,4,5],
                "Byte": [0,0,4,5],
@@ -138,7 +212,7 @@ def encode_numeric_qr(data: str, version: int) -> str:
     else:
         bits_string += "0001" # Numeric mode indicator encoding
 
-    char_count_bits = char_count(data, version, "Numeric") # character count into binary encoding
+    char_count_bits = char_count(data, version, "Numeric", "") # character count into binary encoding
 
     bits_string += char_count_bits   # concatenate strings
 
@@ -171,7 +245,7 @@ def encode_alphanumeric_qr(data: str, version: int, db_alphacoding) -> str:
     else:
         bits_string = "0010" # Alphanumeric mode indicator encoding
     
-    char_count_bits = char_count(data, version, "Alphanumeric") # character count into binary encoding
+    char_count_bits = char_count(data, version, "Alphanumeric", "") # character count into binary encoding
     
     bits_string += char_count_bits   # concatenate
     
@@ -197,31 +271,30 @@ def encode_alphanumeric_qr(data: str, version: int, db_alphacoding) -> str:
         
     return bits_string
 
-def encode_byte_qr(data: str, version: int) -> str:
+def encode_byte_qr(data: str, version: int, bits_string: str, encoding: str) -> str:
 
     """This function convert the input data in the desired bits sequence if the mode is Byte. The structure for the sequence in binary has to contain:
             mode indicator + character count + input data bits sequence
         For a more in depth understanding see pg. 35 chapter 7.4.5 of ISO/IEC 18004:2015"""
     
     m_micro = {-2:"10", -1:"010"}
-    bits_string = ""
+    
     if version < 0:
         bits_string += m_micro[version] # Byte mode indicator encoding for micro QR code, see pg. 31 Table 2
     else:
         bits_string = "0100" # Byte mode indicator encoding
     
-    char_count_bits = char_count(data, version, "Byte") # character count into binary encoding
+    char_count_bits = char_count(data, version, "Byte", encoding) # character count into binary encoding
 
     bits_string += char_count_bits # concatenate
     
     for i in data:
-        if ord(i) <= 255:
-            dec = i.encode('iso-8859-1')[0] # find the decimal value correspoding to the char accorsingly to ISO/IEC 8859-1
+        byte = i.encode(encoding)
+        for j in range(len(byte)):
+            dec = byte[j]   # find the decimal value correspoding to the char accordingly to ISO/IEC 8859-1 by default or UTF-8 if specified
             bits = decToBin(int(dec), 8)    # covert decimal to binary
             bits_string += bits  # concatenate
-        else:
-            print("Value not supported by Byte mode (ISO/IEC 8859-1)")
-            return
+
     return bits_string
 
 def encode_kanji_qr(data: str, version: int) -> str:
@@ -232,37 +305,61 @@ def encode_kanji_qr(data: str, version: int) -> str:
 
     m_micro = {-2:"11", -1:"011"}
     bits_string = ""
+    
     if version < 0:
         bits_string += m_micro[version] # Kanji mode indicator encoding for micro QR code, see pg. 31 Table 2
     else:
         bits_string = "1000" # Kanji mode indicator encoding
     
-    char_count_bits = char_count(data, version, "Kanji")    # character count into binary encoding
+    char_count_bits = char_count(data, version, "Kanji", "")    # character count into binary encoding
     
     bits_string += char_count_bits   # concatenate                        
     
     for i in data:
-        encoded = i.encode('shift_jis') # find the binary value correspoding to the char accorsingly to ISO/IEC 8859-1
+        encoded = i.encode('shift_jis') # find the binary value correspoding to the char accordingly to ISO/IEC 8859-1
         k_hex = encoded.hex()   # convert to hexadecmal
         k_bin = int(k_hex, 16)  # convert to decimal (Kanji are represened by two bytes therefore to convert to decimal we need 16 bits)
-
-        # Now depeding on the value of the k_bin the char will be encoded ina  different way
+ 
+        # Now depeding on the value of the k_bin the char will be encoded in a  different way
         if k_bin >= int("8140", 16) and k_bin <= int("9FFC", 16):
             step1 = int(k_hex, 16) - int("8140", 16)
-            step2 = hex(step1)
-            step3 = int(step2[2:4], 16) * int("C0", 16) + int("1F", 16)
+            msb = step1 // 256  # Most significant Byte
+            lsb = step1 % 256   # Least significant Byte
+            step3 = msb * int("C0", 16) + lsb
             bits = decToBin(step3, 13)  # The final bit string has to be 13 bit long
         elif k_bin >= int("E040", 16) and k_bin <= int("EBBF", 16):
             step1 = int(k_hex, 16) - int("C140", 16)
-            step2 = hex(step1)
-            step3 = int(step2[2:4], 16) * int("C0", 16) + int("6A", 16)
+            msb = step1 // 256  # Most significant Byte
+            lsb = step1 % 256   # Least significant Byte
+            step3 = msb * int("C0", 16) + lsb
             bits = decToBin(step3, 13)  # The final bit string has to be 13 bit long
         else:
             print("Not valid value for kanji encoding")
             return
-        
+        print(i, k_hex, k_bin, step1, msb, lsb, step3, bits)
         bits_string += bits # concatenate
 
+    return bits_string
+    
+def encode_eci_qr(data: str, version: int) -> str:
+    
+    """This function convert the input data in the desired bits sequence if the mode is Byte. The structure for the sequence in binary has to contain:
+            ECI mode indicator + ECI Designator + mode indicator (byte) + character count + input data bits sequence
+        For a more in depth understanding see pg. 32 chapter 7.4.2 of ISO/IEC 18004:2015"""
+    
+    eci_mode = check_eci(data)[1]
+    
+    bits_string = ""
+    
+    if version > 0:
+        bits_string = "0111"   # ECI mode indicator
+        eci_d = int(ECI[eci_mode][0])   # ECI Designator
+        bits_string += 0
+        bits_string += decToBin(int(val[0]), 7)
+        bits_string += encode_byte_qr(data, version, bits_string, encoding = ECI[eci_mode][1])   # The rest of the encoding is hte same for Byte but with the appropriate encoding
+    else:
+        print("Micro QR code don't allow ECI")
+    
     return bits_string
 
 def padding(version: int, bits_string: str, data_bits_capacity: int) -> str:
@@ -316,7 +413,7 @@ def padding(version: int, bits_string: str, data_bits_capacity: int) -> str:
     
     return bits_string
 
-def encode_data(data: str, mode: str, version: int, data_bits_capacity: int) -> str:
+def encode_data(data: str, mode: str, version: int, data_bits_capacity: int, encoding: str = "iso-8859-1") -> str:
 
     """Given a string input to encode generate the bit string sequence"""
 
@@ -325,10 +422,12 @@ def encode_data(data: str, mode: str, version: int, data_bits_capacity: int) -> 
     elif mode == "Alphanumeric":
         bits_string = encode_alphanumeric_qr(data, version)
     elif mode == "Byte":
-        bits_string = encode_byte_qr(data, version)
+        bits_string = encode_byte_qr(data, version, "", encoding)
     elif mode == "Kanji":
         bits_string = encode_kanji_qr(data, version)
-
+    elif mode == "ECI":
+        bits_string = encode_eci_qr(data, version)
+    
     bits_string = padding(version, bits_string, data_bits_capacity)
 
     if len(bits_string) == data_bits_capacity:
@@ -446,3 +545,19 @@ def version_information_string(version: int) -> str:
     string = original + string
     
     return string
+
+
+#data = "καλησπερα" # Greek
+#data = "Добрый вечр" # Cyrillic
+#data = "ערב טוב" # Hebrew
+#data = "مساء الخير" # Arabic
+#data = "晚上好" # Chinese
+#data = chr(0xC88B)+chr(0xC740)+chr(0xC800)+chr(0xB141)+chr(0xC774)+chr(0xC5D0)+chr(0xC694) # Korean
+data = "こんばんは" # Japanese
+
+
+"""mode = find_mode(data)
+bits_string = encode_data(data, mode, 1, 152)
+print(mode)
+print(bits_string)"""
+

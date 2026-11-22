@@ -165,7 +165,7 @@ def fill_qr_code(bit_string: str, matrix: list, mask_matrix: list, modules: int)
 def add_information(version: str, modules: int, ec_code: str, mask_mode: str, matrix: list):
     
     fis = format_information_string(modules, ec_code, mask_mode)
-    print("Format Information: ", fis)
+    print("Format Information: ", mask_mode, fis)
     fi1 = [(0,8), (1,8), (2,8), (3,8), (4,8), (5,8), (7,8), (8,8), (8,7), (8,5), (8,4), (8,3), (8,2), (8,1), (8,0)]
     fi2 = [(8,modules-1), (8,modules-2), (8,modules-3), (8,modules-4), (8,modules-5), (8,modules-6), (8,modules-7), (8,modules-8), (modules-7,8), (modules-6,8), (modules-5,8), (modules-4,8), (modules-3,8), (modules-2,8), (modules-1,8)]
     
@@ -253,6 +253,6 @@ def build_qr_code(version: str, modules: int, r_c: str, ec_code: str, bit_string
     create_alignment_pattern(matrix, mask_matrix, modules, r_c)
     fill_qr_code(bit_string, matrix, mask_matrix, modules)
     matrix = apply_masking(version, modules, ec_code, matrix, mask_matrix, mode = mask_mode)
-    add_quite_zone(modules, matrix)
+    #add_quite_zone(modules, matrix)
 
     return matrix
